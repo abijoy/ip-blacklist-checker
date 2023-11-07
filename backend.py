@@ -1,5 +1,11 @@
 import dns.resolver
 
+import dns.rdatatype
+import dns.name 
+
+from dns.asyncresolver import Resolver
+from time import perf_counter
+import asyncio
 
 #TODO: list the anti-spam databases
 blacklist_providers = [
@@ -148,33 +154,50 @@ def make_url_from_ip(ip_addr, bl_provider):
     return f'{reversed_ip_addr}.{bl_provider}'
 
 
-def check_provider_status(url):
-    # here A is type of record we are looking for
+async def check_provider_status(url):
+    isp_dns = '127.0.0.53'
+    google_dns = '8.8.8.8'
+    cloudflare_dns = '1.1.1.1'
+
+    resolver = Resolver()
+    resolver.nameservers = [cloudflare_dns]
+    resolver.timeout = 20
+
+    # We need to get A record   
+    record_type = dns.rdatatype.A
+
     try:
-        answers = dns.resolver.query(url, 'A')
+        answers = await resolver.resolve(url, record_type)
     except Exception as e:
-        print(e)
+        # print(e)
         return False
     return True
 
 
 #TODO: CHECK FOR THE PRESENCE IN ANTI-SPAM DATABASE FOR THE IP
-def check_status(ip_addr):
+async def check_status(ip_addr):
     # urls = [make_url_from_ip(ip_addr, bl) for bl in blacklist_providers]
+    checking_tasks = []
     for bl in blacklist_providers:
         url = make_url_from_ip(ip_addr, bl)
-        status = check_provider_status(url)
+
+        # check_provider_status is network bound function
+        task = asyncio.create_task(check_provider_status(url))
+        checking_tasks.append(task)
+    statuses  = await asyncio.gather(*checking_tasks)
+    # print(statuses)
+    for bl_provider, status in zip(blacklist_providers, statuses):
         if status:
-            results[bl] = '✅'
-
-
-def display_results():
-    print(results)
-
+            print(f"{bl_provider} : {'✅'if status else False}")
 
 
 if __name__ == '__main__':
+    start = perf_counter()
     ip_addr = '103.251.167.20'
-    check_status(ip_addr)
-    display_results()
+    asyncio.run(check_status(ip_addr))
+    stop = perf_counter()
+    print('############### TIME TAKES ############## :: ', stop - start)
+    print('TOTAL DATABASE CHECKED: ', len(blacklist_providers))
+
+    # display_results()
 
