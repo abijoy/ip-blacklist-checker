@@ -159,15 +159,15 @@ async def check_provider_status(url):
     google_dns = '8.8.8.8'
     cloudflare_dns = '1.1.1.1'
 
-    resolver = Resolver()
-    resolver.nameservers = [cloudflare_dns]
-    resolver.timeout = 20
+    async_resolver = Resolver()
+    async_resolver.nameservers = [google_dns]
+    async_resolver.timeout = 20
 
     # We need to get A record   
     record_type = dns.rdatatype.A
 
     try:
-        answers = await resolver.resolve(url, record_type)
+        answers = await async_resolver.resolve(url, record_type)
     except Exception as e:
         # print(e)
         return False
@@ -186,18 +186,25 @@ async def check_status(ip_addr):
         checking_tasks.append(task)
     statuses  = await asyncio.gather(*checking_tasks)
     # print(statuses)
+    result = results.copy()
+    # result = dict()
+    result = []
     for bl_provider, status in zip(blacklist_providers, statuses):
+        # result[bl_provider] = status
         if status:
-            print(f"{bl_provider} : {'✅'if status else False}")
+            result.append(bl_provider)
+     
+    return result
 
 
 if __name__ == '__main__':
     start = perf_counter()
     ip_addr = '103.251.167.20'
-    asyncio.run(check_status(ip_addr))
+    print(asyncio.run(check_status(ip_addr)))
     stop = perf_counter()
     print('############### TIME TAKES ############## :: ', stop - start)
     print('TOTAL DATABASE CHECKED: ', len(blacklist_providers))
 
+    # print(results)
     # display_results()
 
