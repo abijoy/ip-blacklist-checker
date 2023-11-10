@@ -7,68 +7,36 @@ from dns.asyncresolver import Resolver
 from time import perf_counter
 import asyncio
 
-#TODO: list the anti-spam databases
+# DONE: list the anti-spam databases
+# needed to decrease the providers down to 30ish to bring down the async calls into half.
 blacklist_providers = [
  'access.redhawk.org',
  'all.s5h.net',
  'b.barracudacentral.org',
  'bl.spamcop.net',
- 'bl.tiopan.com',
- 'blackholes.wirehub.net',
- 'blacklist.sci.kun.nl',
- 'block.dnsbl.sorbs.net',
- 'blocked.hilli.dk',
- 'bogons.cymru.com',
  'cbl.abuseat.org',
- 'dev.null.dk',
  'dialup.blacklist.jippg.org',
  'dialups.mail-abuse.org',
- 'dialups.visi.com',
  'dnsbl.abuse.ch',
- 'dnsbl.anticaptcha.net',
- 'dnsbl.antispam.or.id',
  'dnsbl.dronebl.org',
  'dnsbl.justspam.org',
- 'dnsbl.kempt.net',
  'dnsbl.sorbs.net',
  'dnsbl.tornevall.org',
  'dnsbl-1.uceprotect.net',
- 'duinv.aupads.org',
  'dnsbl-2.uceprotect.net',
  'dnsbl-3.uceprotect.net',
  'dul.dnsbl.sorbs.net',
- 'escalations.dnsbl.sorbs.net',
- 'hil.habeas.com',
  'black.junkemailfilter.com',
  'http.dnsbl.sorbs.net',
  'intruders.docs.uu.se',
- 'ips.backscatterer.org',
- 'korea.services.net',
- 'mail-abuse.blacklist.jippg.org',
  'misc.dnsbl.sorbs.net',
- 'msgid.bl.gweep.ca',
- 'new.dnsbl.sorbs.net',
- 'no-more-funn.moensted.dk',
- 'old.dnsbl.sorbs.net',
  'opm.tornevall.org',
  'pbl.spamhaus.org',
- 'proxy.bl.gweep.ca',
- 'psbl.surriel.com',
- 'pss.spambusters.org.ar',
- 'rbl.schulte.org',
- 'rbl.snark.net',
  'recent.dnsbl.sorbs.net',
- 'relays.bl.gweep.ca',
  'relays.mail-abuse.org',
- 'relays.nether.net',
- 'rsbl.aupads.org',
  'sbl.spamhaus.org',
  'smtp.dnsbl.sorbs.net',
- 'socks.dnsbl.sorbs.net',
  'spam.dnsbl.sorbs.net',
- 'spam.olsentech.net',
- 'spamguard.leadmon.net',
- 'spamsources.fabel.dk',
  'ubl.unsubscore.com',
  'web.dnsbl.sorbs.net',
  'xbl.spamhaus.org',
@@ -153,23 +121,30 @@ def make_url_from_ip(ip_addr, bl_provider):
     reversed_ip_addr = '.'.join(ip_addr.split('.')[::-1])
     return f'{reversed_ip_addr}.{bl_provider}'
 
-
+count = 0
 async def check_provider_status(url):
     isp_dns = '127.0.0.53'
     google_dns = '8.8.8.8'
     cloudflare_dns = '1.1.1.1'
 
-    async_resolver = Resolver()
+    # setting configure=False 
+    # makes sure Resolver Stub doesn't check system's /etc/resolv.conf
+    # eachtime
+    async_resolver = Resolver(configure=False)
     async_resolver.nameservers = [google_dns]
-    async_resolver.timeout = 20
+    async_resolver.lifetime = 100
+    async_resolver.timeout = 2
 
     # We need to get A record   
     record_type = dns.rdatatype.A
+    lifetime = 30
 
     try:
-        answers = await async_resolver.resolve(url, record_type)
+        global count
+        count += 1
+        answers = await async_resolver.resolve(url, record_type, lifetime=lifetime)
     except Exception as e:
-        # print(e)
+        print(e)
         return False
     return True
 
@@ -199,11 +174,11 @@ async def check_status(ip_addr):
 
 if __name__ == '__main__':
     start = perf_counter()
-    ip_addr = '103.251.167.20'
+    ip_addr = '202.83.124.95'
     print(asyncio.run(check_status(ip_addr)))
     stop = perf_counter()
     print('############### TIME TAKES ############## :: ', stop - start)
-    print('TOTAL DATABASE CHECKED: ', len(blacklist_providers))
+    print('TOTAL DATABASE CHECKED: ', count)
 
     # print(results)
     # display_results()

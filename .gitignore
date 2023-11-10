@@ -1,2 +1,5 @@
 .venv/
 .venv/*
+api_dev_learn/
+api_dev_learn/*
+learn/
