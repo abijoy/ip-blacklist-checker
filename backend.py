@@ -144,7 +144,7 @@ async def check_provider_status(url):
         count += 1
         answers = await async_resolver.resolve(url, record_type, lifetime=lifetime)
     except Exception as e:
-        print(e)
+        # print(e)
         return False
     return True
 
