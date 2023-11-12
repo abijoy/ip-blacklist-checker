@@ -122,22 +122,38 @@ def make_url_from_ip(ip_addr, bl_provider):
     return f'{reversed_ip_addr}.{bl_provider}'
 
 count = 0
+
+isp_dns = '127.0.0.53'
+google_dns = '8.8.8.8'
+cloudflare_dns = '1.1.1.1'
+# setting configure=False 
+# makes sure Resolver Stub doesn't check system's /etc/resolv.conf
+# eachtime
+async_resolver = Resolver(configure=False)
+async_resolver.nameservers = [google_dns]
+async_resolver.lifetime = 100
+async_resolver.timeout = 2
+
+# We need to get A record   
+record_type = dns.rdatatype.A
+lifetime = 30
+
 async def check_provider_status(url):
-    isp_dns = '127.0.0.53'
-    google_dns = '8.8.8.8'
-    cloudflare_dns = '1.1.1.1'
+    # isp_dns = '127.0.0.53'
+    # google_dns = '8.8.8.8'
+    # cloudflare_dns = '1.1.1.1'
 
-    # setting configure=False 
-    # makes sure Resolver Stub doesn't check system's /etc/resolv.conf
-    # eachtime
-    async_resolver = Resolver(configure=False)
-    async_resolver.nameservers = [google_dns]
-    async_resolver.lifetime = 100
-    async_resolver.timeout = 2
+    # # setting configure=False 
+    # # makes sure Resolver Stub doesn't check system's /etc/resolv.conf
+    # # eachtime
+    # async_resolver = Resolver(configure=False)
+    # async_resolver.nameservers = [google_dns]
+    # async_resolver.lifetime = 100
+    # async_resolver.timeout = 2
 
-    # We need to get A record   
-    record_type = dns.rdatatype.A
-    lifetime = 30
+    # # We need to get A record   
+    # record_type = dns.rdatatype.A
+    # lifetime = 30
 
     try:
         global count
@@ -161,7 +177,7 @@ async def check_status(ip_addr):
         checking_tasks.append(task)
     statuses  = await asyncio.gather(*checking_tasks)
     # print(statuses)
-    result = results.copy()
+    # result = results.copy()
     # result = dict()
     result = []
     for bl_provider, status in zip(blacklist_providers, statuses):
